@@ -357,7 +357,20 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
             }["Agent.useEffect.onCallStart"];
             const onCallEnd = {
                 "Agent.useEffect.onCallEnd": ()=>{
-                    setCallStatus("FINISHED");
+                    try {
+                        setCallStatus("FINISHED");
+                        // Only process messages if we have some and we're not in an error state
+                        if (messages.length > 0) {
+                            if (type === "generate") {
+                                router.push("/");
+                            } else {
+                                handleGenerateFeedback(messages);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error handling call end:", error);
+                        router.push("/");
+                    }
                 }
             }["Agent.useEffect.onCallEnd"];
             const onMessage = {
@@ -390,9 +403,53 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
             }["Agent.useEffect.onSpeechEnd"];
             const onError = {
                 "Agent.useEffect.onError": (error)=>{
-                    console.log("Error:", error);
+                    console.error("Vapi Error:", error);
+                    // Handle specific error types
+                    if (error.message.includes("Meeting has ended")) {
+                        setCallStatus("FINISHED");
+                        if (messages.length > 0) {
+                            if (type === "generate") {
+                                router.push("/");
+                            } else {
+                                handleGenerateFeedback(messages);
+                            }
+                        } else {
+                            router.push("/");
+                        }
+                    } else {
+                        // For other errors, try to gracefully end the session
+                        try {
+                            __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].stop();
+                        } catch (stopError) {
+                            console.error("Error stopping vapi:", stopError);
+                        }
+                        setCallStatus("FINISHED");
+                        router.push("/");
+                    }
                 }
             }["Agent.useEffect.onError"];
+            const handleGenerateFeedback = {
+                "Agent.useEffect.handleGenerateFeedback": async (messages)=>{
+                    try {
+                        console.log("Generating feedback for messages:", messages);
+                        const { success, feedbackId: id } = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$general$2e$action$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createFeedback"])({
+                            interviewId: interviewId,
+                            userId: userId,
+                            transcript: messages,
+                            feedbackId
+                        });
+                        if (success && id) {
+                            router.push(`/interview/${interviewId}/feedback`);
+                        } else {
+                            console.error("Error saving feedback");
+                            router.push("/");
+                        }
+                    } catch (error) {
+                        console.error("Error generating feedback:", error);
+                        router.push("/");
+                    }
+                }
+            }["Agent.useEffect.handleGenerateFeedback"];
             __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].on("call-start", onCallStart);
             __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].on("call-end", onCallEnd);
             __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].on("message", onMessage);
@@ -401,12 +458,16 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
             __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].on("error", onError);
             return ({
                 "Agent.useEffect": ()=>{
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("call-start", onCallStart);
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("call-end", onCallEnd);
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("message", onMessage);
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("speech-start", onSpeechStart);
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("speech-end", onSpeechEnd);
-                    __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("error", onError);
+                    try {
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("call-start", onCallStart);
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("call-end", onCallEnd);
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("message", onMessage);
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("speech-start", onSpeechStart);
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("speech-end", onSpeechEnd);
+                        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].off("error", onError);
+                    } catch (error) {
+                        console.error("Error cleaning up vapi listeners:", error);
+                    }
                 }
             })["Agent.useEffect"];
         }
@@ -416,64 +477,46 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
             if (messages.length > 0) {
                 setLastMessage(messages[messages.length - 1].content);
             }
-            const handleGenerateFeedback = {
-                "Agent.useEffect.handleGenerateFeedback": async (messages)=>{
-                    console.log("handleGenerateFeedback");
-                    const { success, feedbackId: id } = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$general$2e$action$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createFeedback"])({
-                        interviewId: interviewId,
-                        userId: userId,
-                        transcript: messages,
-                        feedbackId
-                    });
-                    if (success && id) {
-                        router.push(`/interview/${interviewId}/feedback`);
-                    } else {
-                        console.log("Error saving feedback");
-                        router.push("/");
-                    }
-                }
-            }["Agent.useEffect.handleGenerateFeedback"];
-            if (callStatus === "FINISHED") {
-                if (type === "generate") {
-                    router.push("/");
-                } else {
-                    handleGenerateFeedback(messages);
-                }
-            }
         }
     }["Agent.useEffect"], [
-        messages,
-        callStatus,
-        feedbackId,
-        interviewId,
-        router,
-        type,
-        userId
+        messages
     ]);
     const handleCall = async ()=>{
-        setCallStatus("CONNECTING");
-        if (type === "generate") {
-            await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].start(("TURBOPACK compile-time value", "da515a55-8512-4eef-8d86-625f941144d0"), {
-                variableValues: {
-                    username: userName,
-                    userid: userId
+        try {
+            setCallStatus("CONNECTING");
+            if (type === "generate") {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].start(("TURBOPACK compile-time value", "da515a55-8512-4eef-8d86-625f941144d0"), {
+                    variableValues: {
+                        username: userName,
+                        userid: userId
+                    }
+                });
+            } else {
+                let formattedQuestions = "";
+                if (questions) {
+                    formattedQuestions = questions.map((question)=>`- ${question}`).join("\n");
                 }
-            });
-        } else {
-            let formattedQuestions = "";
-            if (questions) {
-                formattedQuestions = questions.map((question)=>`- ${question}`).join("\n");
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].start(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["interviewer"], {
+                    variableValues: {
+                        questions: formattedQuestions
+                    }
+                });
             }
-            await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].start(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["interviewer"], {
-                variableValues: {
-                    questions: formattedQuestions
-                }
-            });
+        } catch (error) {
+            console.error("Error starting call:", error);
+            setCallStatus("INACTIVE");
+        // Optionally show an error message to the user
         }
     };
     const handleDisconnect = ()=>{
-        setCallStatus("FINISHED");
-        __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].stop();
+        try {
+            setCallStatus("FINISHED");
+            __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$vapi$2e$sdk$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["vapi"].stop();
+        } catch (error) {
+            console.error("Error disconnecting:", error);
+            // Force the status to finished even if there's an error
+            setCallStatus("FINISHED");
+        }
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
         children: [
@@ -494,33 +537,33 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                                         className: "object-cover"
                                     }, void 0, false, {
                                         fileName: "[project]/components/Agent.tsx",
-                                        lineNumber: 154,
+                                        lineNumber: 201,
                                         columnNumber: 13
                                     }, this),
                                     isSpeaking && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         className: "animate-speak"
                                     }, void 0, false, {
                                         fileName: "[project]/components/Agent.tsx",
-                                        lineNumber: 161,
+                                        lineNumber: 208,
                                         columnNumber: 28
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/Agent.tsx",
-                                lineNumber: 153,
+                                lineNumber: 200,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
                                 children: "AI Interviewer"
                             }, void 0, false, {
                                 fileName: "[project]/components/Agent.tsx",
-                                lineNumber: 163,
+                                lineNumber: 210,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/Agent.tsx",
-                        lineNumber: 152,
+                        lineNumber: 199,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -536,31 +579,31 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                                     className: "rounded-full object-cover size-[120px]"
                                 }, void 0, false, {
                                     fileName: "[project]/components/Agent.tsx",
-                                    lineNumber: 169,
+                                    lineNumber: 216,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
                                     children: userName
                                 }, void 0, false, {
                                     fileName: "[project]/components/Agent.tsx",
-                                    lineNumber: 176,
+                                    lineNumber: 223,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/Agent.tsx",
-                            lineNumber: 168,
+                            lineNumber: 215,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/Agent.tsx",
-                        lineNumber: 167,
+                        lineNumber: 214,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/Agent.tsx",
-                lineNumber: 150,
+                lineNumber: 197,
                 columnNumber: 7
             }, this),
             messages.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -572,17 +615,17 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                         children: lastMessage
                     }, lastMessage, false, {
                         fileName: "[project]/components/Agent.tsx",
-                        lineNumber: 184,
+                        lineNumber: 231,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/components/Agent.tsx",
-                    lineNumber: 183,
+                    lineNumber: 230,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/Agent.tsx",
-                lineNumber: 182,
+                lineNumber: 229,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -595,7 +638,7 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                             className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("absolute animate-ping rounded-full opacity-75", callStatus !== "CONNECTING" && "hidden")
                         }, void 0, false, {
                             fileName: "[project]/components/Agent.tsx",
-                            lineNumber: 200,
+                            lineNumber: 247,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -603,13 +646,13 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                             children: callStatus === "INACTIVE" || callStatus === "FINISHED" ? "Call" : ". . ."
                         }, void 0, false, {
                             fileName: "[project]/components/Agent.tsx",
-                            lineNumber: 207,
+                            lineNumber: 254,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/Agent.tsx",
-                    lineNumber: 199,
+                    lineNumber: 246,
                     columnNumber: 11
                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                     className: "btn-disconnect",
@@ -617,12 +660,12 @@ const Agent = ({ userName, userId, interviewId, feedbackId, type, questions })=>
                     children: "End"
                 }, void 0, false, {
                     fileName: "[project]/components/Agent.tsx",
-                    lineNumber: 214,
+                    lineNumber: 261,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/Agent.tsx",
-                lineNumber: 197,
+                lineNumber: 244,
                 columnNumber: 7
             }, this)
         ]
