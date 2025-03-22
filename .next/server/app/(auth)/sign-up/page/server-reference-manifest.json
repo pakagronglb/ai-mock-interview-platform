@@ -1,0 +1,71 @@
+{
+  "node": {
+    "00144cfc10f97de7af49dbd5a2c11188e68a155b1a": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    },
+    "001ddb4fb53cd880c68cefb045e1cd373c5977dade": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    },
+    "008c79b95413940d351c7c9a4fbf2497dbb26268d7": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    },
+    "40bf1fceafeee1b6ffd54a94ad73fa59269358accf": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    },
+    "40f96503d0ad0e8d8d96af5889a2c1c23ee9a06c20": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    },
+    "40fc44c3511ab0351f5b4e2ff3869cac529cf7a102": {
+      "workers": {
+        "app/(auth)/sign-up/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/sign-up/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/auth.action.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true
+        }
+      },
+      "layer": {
+        "app/(auth)/sign-up/page": "action-browser"
+      }
+    }
+  },
+  "edge": {}
+}
