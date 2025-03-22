@@ -308,18 +308,24 @@ async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ getFeedbackByInterviewI
 }
 async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ getLatestInterviews(params) {
     const { userId, limit = 20 } = params;
-    const interviews = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].collection("interviews").orderBy("createdAt", "desc").where("finalized", "==", true).where("userId", "!=", userId).limit(limit).get();
+    // Simple query that only filters by finalized
+    const interviews = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].collection("interviews").where("finalized", "==", true).get();
+    // Do sorting and filtering in memory
     return interviews.docs.map((doc)=>({
             id: doc.id,
             ...doc.data()
-        }));
+        })).filter((interview)=>interview.userId !== userId).sort((a, b)=>new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit);
 }
 async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ getInterviewsByUserId(userId) {
-    const interviews = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].collection("interviews").where("userId", "==", userId).orderBy("createdAt", "desc").get();
+    const interviews = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"].collection("interviews").where("userId", "==", userId).get();
+    // Sort the results in-memory after retrieving them
     return interviews.docs.map((doc)=>({
             id: doc.id,
             ...doc.data()
-        }));
+        })).sort((a, b)=>{
+        // Assume createdAt is an ISO string or timestamp
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 }
 ;
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$validate$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ensureServerEntryExports"])([

@@ -3,26 +3,43 @@
 import { auth, db } from "@/firebase/admin";
 import { cookies } from "next/headers";
 
+interface FirebaseAuthError extends Error {
+  code?: string;
+  message: string;
+}
+
 // Session duration (1 week)
 const SESSION_DURATION = 60 * 60 * 24 * 7;
 
 // Set session cookie
 export async function setSessionCookie(idToken: string) {
-  const cookieStore = await cookies();
+  try {
+    const cookieStore = await cookies();
 
-  // Create session cookie
-  const sessionCookie = await auth.createSessionCookie(idToken, {
-    expiresIn: SESSION_DURATION * 1000, // milliseconds
-  });
+    // Verify the token before creating a session
+    await auth.verifyIdToken(idToken);
+    
+    // Create session cookie
+    const sessionCookie = await auth.createSessionCookie(idToken, {
+      expiresIn: SESSION_DURATION * 1000, // milliseconds
+    });
 
-  // Set cookie in the browser
-  cookieStore.set("session", sessionCookie, {
-    maxAge: SESSION_DURATION,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    sameSite: "lax",
-  });
+    // Set cookie in the browser
+    cookieStore.set("session", sessionCookie, {
+      maxAge: SESSION_DURATION,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      sameSite: "lax",
+    });
+  } catch (error: unknown) {
+    console.error("Error setting session cookie:", error);
+    const firebaseError = error as FirebaseAuthError;
+    if (firebaseError.code === "auth/invalid-id-token" || firebaseError.code === "auth/invalid-credential") {
+      throw new Error("Invalid authentication token. Please sign in again.");
+    }
+    throw error;
+  }
 }
 
 export async function signUp(params: SignUpParams) {
@@ -49,11 +66,12 @@ export async function signUp(params: SignUpParams) {
       success: true,
       message: "Account created successfully. Please sign in.",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating user:", error);
+    const firebaseError = error as FirebaseAuthError;
 
     // Handle Firebase specific errors
-    if (error.code === "auth/email-already-exists") {
+    if (firebaseError.code === "auth/email-already-exists") {
       return {
         success: false,
         message: "This email is already in use",
@@ -78,13 +96,26 @@ export async function signIn(params: SignInParams) {
         message: "User does not exist. Create an account.",
       };
 
-    await setSessionCookie(idToken);
-  } catch (error: any) {
-    console.log("");
-
+    try {
+      await setSessionCookie(idToken);
+    } catch (sessionError: unknown) {
+      console.error("Session cookie error:", sessionError);
+      const firebaseError = sessionError as FirebaseAuthError;
+      return {
+        success: false,
+        message: firebaseError.code === "auth/invalid-credential" 
+          ? "Invalid credentials. Please sign in again." 
+          : "Failed to create session. Please try again.",
+      };
+    }
+  } catch (error: unknown) {
+    console.error("Authentication error:", error);
+    const firebaseError = error as FirebaseAuthError;
     return {
       success: false,
-      message: "Failed to log into account. Please try again.",
+      message: firebaseError.code === "auth/invalid-credential" 
+        ? "Invalid credentials. Please try again." 
+        : "Failed to log into account. Please try again.",
     };
   }
 }
@@ -117,8 +148,8 @@ export async function getCurrentUser(): Promise<User | null> {
       ...userRecord.data(),
       id: userRecord.id,
     } as User;
-  } catch (error) {
-    console.log(error);
+  } catch (error: unknown) {
+    console.error("Session verification error:", error);
 
     // Invalid or expired session
     return null;

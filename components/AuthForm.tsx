@@ -8,6 +8,7 @@ import { auth } from "@/firebase/client";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FirebaseError } from "firebase/app";
 
 import {
   createUserWithEmailAndPassword,
@@ -24,7 +25,7 @@ const authFormSchema = (type: FormType) => {
   return z.object({
     name: type === "sign-up" ? z.string().min(3) : z.string().optional(),
     email: z.string().email(),
-    password: z.string().min(3),
+    password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   });
 };
 
@@ -69,29 +70,43 @@ const AuthForm = ({ type }: { type: FormType }) => {
       } else {
         const { email, password } = data;
 
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+        try {
+          const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+          );
 
-        const idToken = await userCredential.user.getIdToken();
-        if (!idToken) {
-          toast.error("Sign in Failed. Please try again.");
+          const idToken = await userCredential.user.getIdToken();
+          if (!idToken) {
+            toast.error("Sign in Failed. Please try again.");
+            return;
+          }
+
+          await signIn({
+            email,
+            idToken,
+          });
+
+          toast.success("Signed in successfully.");
+          router.push("/");
+        } catch (authError: unknown) {
+          console.error("Firebase Auth Error:", authError);
+          const firebaseError = authError as FirebaseError;
+          if (firebaseError.code === "auth/invalid-credential") {
+            toast.error("Invalid email or password. Please try again.");
+          } else if (firebaseError.code === "auth/user-not-found") {
+            toast.error("User not found. Please create an account.");
+          } else {
+            toast.error(`Authentication error: ${firebaseError.message}`);
+          }
           return;
         }
-
-        await signIn({
-          email,
-          idToken,
-        });
-
-        toast.success("Signed in successfully.");
-        router.push("/");
       }
-    } catch (error) {
-      console.log(error);
-      toast.error(`There was an error: ${error}`);
+    } catch (error: unknown) {
+      console.error("Form submission error:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`There was an error: ${errorMessage}`);
     }
   };
 

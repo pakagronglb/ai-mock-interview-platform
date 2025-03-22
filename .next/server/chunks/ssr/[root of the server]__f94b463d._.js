@@ -53,21 +53,30 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 ;
 // Initialize Firebase Admin SDK
 function initFirebaseAdmin() {
-    const apps = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["getApps"])();
-    if (!apps.length) {
-        (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["initializeApp"])({
-            credential: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["cert"])({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                // Replace newlines in the private key
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
-            })
-        });
+    try {
+        const apps = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["getApps"])();
+        if (!apps.length) {
+            const privateKey = process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n") : undefined;
+            if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+                console.error("Firebase Admin SDK credentials missing in environment variables");
+                throw new Error("Firebase Admin SDK initialization failed - missing credentials");
+            }
+            (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["initializeApp"])({
+                credential: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$app__$5b$external$5d$__$28$firebase$2d$admin$2f$app$2c$__esm_import$29$__["cert"])({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: privateKey
+                })
+            });
+        }
+        return {
+            auth: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$auth__$5b$external$5d$__$28$firebase$2d$admin$2f$auth$2c$__esm_import$29$__["getAuth"])(),
+            db: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$firestore__$5b$external$5d$__$28$firebase$2d$admin$2f$firestore$2c$__esm_import$29$__["getFirestore"])()
+        };
+    } catch (error) {
+        console.error("Firebase Admin SDK initialization error:", error);
+        throw error;
     }
-    return {
-        auth: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$auth__$5b$external$5d$__$28$firebase$2d$admin$2f$auth$2c$__esm_import$29$__["getAuth"])(),
-        db: (0, __TURBOPACK__imported__module__$5b$externals$5d2f$firebase$2d$admin$2f$firestore__$5b$external$5d$__$28$firebase$2d$admin$2f$firestore$2c$__esm_import$29$__["getFirestore"])()
-    };
 }
 const { auth, db } = initFirebaseAdmin();
 __turbopack_async_result__();
@@ -101,19 +110,30 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 // Session duration (1 week)
 const SESSION_DURATION = 60 * 60 * 24 * 7;
 async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ setSessionCookie(idToken) {
-    const cookieStore = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["cookies"])();
-    // Create session cookie
-    const sessionCookie = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["auth"].createSessionCookie(idToken, {
-        expiresIn: SESSION_DURATION * 1000
-    });
-    // Set cookie in the browser
-    cookieStore.set("session", sessionCookie, {
-        maxAge: SESSION_DURATION,
-        httpOnly: true,
-        secure: ("TURBOPACK compile-time value", "development") === "production",
-        path: "/",
-        sameSite: "lax"
-    });
+    try {
+        const cookieStore = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["cookies"])();
+        // Verify the token before creating a session
+        await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["auth"].verifyIdToken(idToken);
+        // Create session cookie
+        const sessionCookie = await __TURBOPACK__imported__module__$5b$project$5d2f$firebase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["auth"].createSessionCookie(idToken, {
+            expiresIn: SESSION_DURATION * 1000
+        });
+        // Set cookie in the browser
+        cookieStore.set("session", sessionCookie, {
+            maxAge: SESSION_DURATION,
+            httpOnly: true,
+            secure: ("TURBOPACK compile-time value", "development") === "production",
+            path: "/",
+            sameSite: "lax"
+        });
+    } catch (error) {
+        console.error("Error setting session cookie:", error);
+        const firebaseError = error;
+        if (firebaseError.code === "auth/invalid-id-token" || firebaseError.code === "auth/invalid-credential") {
+            throw new Error("Invalid authentication token. Please sign in again.");
+        }
+        throw error;
+    }
 }
 async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ signUp(params) {
     const { uid, name, email } = params;
@@ -135,8 +155,9 @@ async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ signUp(params) {
         };
     } catch (error) {
         console.error("Error creating user:", error);
+        const firebaseError = error;
         // Handle Firebase specific errors
-        if (error.code === "auth/email-already-exists") {
+        if (firebaseError.code === "auth/email-already-exists") {
             return {
                 success: false,
                 message: "This email is already in use"
@@ -156,12 +177,22 @@ async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ signIn(params) {
             success: false,
             message: "User does not exist. Create an account."
         };
-        await setSessionCookie(idToken);
+        try {
+            await setSessionCookie(idToken);
+        } catch (sessionError) {
+            console.error("Session cookie error:", sessionError);
+            const firebaseError = sessionError;
+            return {
+                success: false,
+                message: firebaseError.code === "auth/invalid-credential" ? "Invalid credentials. Please sign in again." : "Failed to create session. Please try again."
+            };
+        }
     } catch (error) {
-        console.log("");
+        console.error("Authentication error:", error);
+        const firebaseError = error;
         return {
             success: false,
-            message: "Failed to log into account. Please try again."
+            message: firebaseError.code === "auth/invalid-credential" ? "Invalid credentials. Please try again." : "Failed to log into account. Please try again."
         };
     }
 }
@@ -183,7 +214,7 @@ async function /*#__TURBOPACK_DISABLE_EXPORT_MERGING__*/ getCurrentUser() {
             id: userRecord.id
         };
     } catch (error) {
-        console.log(error);
+        console.error("Session verification error:", error);
         // Invalid or expired session
         return null;
     }
