@@ -4,7 +4,8 @@ An intelligent interview preparation platform that leverages AI to help you prac
 
 [View Demo](https://ai-mock-interview-platform.vercel.app)
 
-![PrepWise Platform](public/preview.png)
+![PrepWise](https://github.com/user-attachments/assets/1d8b43e7-e2dd-4425-881a-29992a140e58)
+
 
 ## ✨ Features
 
